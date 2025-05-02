@@ -161,7 +161,7 @@ void A_input(struct pkt packet) {
         if (window_slid) {
           stoptimer(A);
           if (unacked_packet_count > 0) {
-            starttimer(A, RTT);  // Start timer for the new oldest packet
+            starttimer(A, RTT); /* Start timer for the new oldest packet*/
           }
         }
 
