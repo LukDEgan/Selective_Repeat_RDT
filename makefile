@@ -1,12 +1,18 @@
 CC = gcc
 CFLAGS = -Wall -ansi -pedantic
-TARGET = gbn
-SRCS = emulator.c gbn.c
+GBN_TARGET = gbn
+SR_TARGET = sr
 
-all: $(TARGET)
+GBN_SRCS = emulator.c gbn.c
+SR_SRCS = emulator.c sr.c
 
-$(TARGET): $(SRCS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
+all: $(GBN_TARGET) $(SR_TARGET)
+
+$(GBN_TARGET): $(GBN_SRCS)
+	$(CC) $(CFLAGS) -o $(GBN_TARGET) $(GBN_SRCS)
+
+$(SR_TARGET): $(SR_SRCS)
+	$(CC) $(CFLAGS) -o $(SR_TARGET) $(SR_SRCS)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(GBN_TARGET) $(SR_TARGET)

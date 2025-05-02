@@ -113,9 +113,7 @@ void A_output(struct msg message) {
    In this practical this will always be an ACK as B never sends data.
 */
 void A_input(struct pkt packet) {
-  int ackcount = 0;
-  int i;
-
+  int ackseq;
   /* if received ACK is not corrupted */
   if (!IsCorrupted(packet)) {
     if (TRACE > 0)
@@ -138,7 +136,8 @@ void A_input(struct pkt packet) {
         /* selective repeat doesn't have cumulative acks, need to see if ack
          * packet acks a waiting unacked packet (say that three times over lol)
          */
-        int ackseq = packet.acknum;
+
+        ackseq = packet.acknum;
         if (!a_acked[ackseq]) {
           a_acked[ackseq] = true; /*packet has been acked, set to true*/
           unacked_packet_count--;
@@ -157,8 +156,8 @@ void A_input(struct pkt packet) {
          */
         stoptimer(A);
         if (window_slid) starttimer(A, RTT);
-        // otherwise, if window didnt slide, oldest hasnt been acked, continue
-        // like normal.
+        /* otherwise, if window didnt slide, oldest hasnt been acked, continue
+              like normal. */
       }
     } else if (TRACE > 0)
       printf("----A: duplicate ACK received, do nothing!\n");
@@ -182,6 +181,7 @@ void A_timerinterrupt(void) {
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init(void) {
+  int i;
   /* initialise A's window, buffer and sequence number */
   A_nextseqnum = 0; /* A starts with seq num 0, do not change this */
   a_windowfirst = 0;
@@ -190,7 +190,8 @@ void A_init(void) {
                    so initially this is set to -1
                  */
   unacked_packet_count = 0;
-  for (int i = 0; i < SEQSPACE; i++)
+
+  for (i = 0; i < SEQSPACE; i++)
     a_acked[i] = false; /*initially, all packets are not acked*/
 }
 
@@ -206,6 +207,8 @@ static bool
 void B_input(struct pkt packet) {
   struct pkt sendpkt;
   int i;
+  int upper_bound;
+  bool inwindow;
   int sequencenum = packet.seqnum;
   /* if not corrupted, check if its within the window, if it
    * is, and its not a duplicate, buffer it*/
@@ -215,8 +218,8 @@ void B_input(struct pkt packet) {
              packet.seqnum);
     packets_received++;
     /* check if its in the window*/
-    int upper_bound = (b_windowbase + WINDOWSIZE) % SEQSPACE;
-    bool inwindow = false;
+    upper_bound = (b_windowbase + WINDOWSIZE) % SEQSPACE;
+    inwindow = false;
     if (b_windowbase < upper_bound) { /* no wrap around, easy check*/
       if (sequencenum >= b_windowbase && sequencenum < upper_bound) {
         inwindow = true;
@@ -265,9 +268,10 @@ void B_input(struct pkt packet) {
 /* the following routine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void) {
+  int i;
   B_nextseqnum = 1;
   b_windowbase = 0;
-  for (int i = 0; i < SEQSPACE; i++) {
+  for (i = 0; i < SEQSPACE; i++) {
     b_acked[i] = false;
   }
 }
