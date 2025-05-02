@@ -120,7 +120,7 @@ void A_input(struct pkt packet) {
   if (!IsCorrupted(packet)) {
     if (TRACE > 0)
       printf("----A: uncorrupted ACK %d is received\n", packet.acknum);
-
+    total_ACKs_received++;
     /* check if new ACK or duplicate */
     if (unacked_packet_count != 0) {
       int seqfirst = a_window[a_windowfirst].seqnum;
@@ -144,17 +144,21 @@ void A_input(struct pkt packet) {
           unacked_packet_count--;
         }
         /* in selective repeat, the window slides up the first unacked packet*/
+        bool window_slid = false;
         while (a_acked[a_window[a_windowfirst].seqnum]) {
           a_acked[a_window[a_windowfirst].seqnum] =
               false; /*setting this to false is the same as sliding the window
                         over*/
           a_windowfirst = (a_windowfirst + 1) % WINDOWSIZE;
+          window_slid = true;
         }
-        /* start timer again if there are still more unacked packets in window
-
+        /* start timer again if the oldest is acked (the window mustve slid) or
+           if the oldest times out
          */
         stoptimer(A);
-        if (unacked_packet_count > 0) starttimer(A, RTT);
+        if (window_slid) starttimer(A, RTT);
+        // otherwise, if window didnt slide, oldest hasnt been acked, continue
+        // like normal.
       }
     } else if (TRACE > 0)
       printf("----A: duplicate ACK received, do nothing!\n");
@@ -164,19 +168,15 @@ void A_input(struct pkt packet) {
 
 /* called when A's timer goes off */
 void A_timerinterrupt(void) {
-  int i;
-
   if (TRACE > 0) printf("----A: time out,resend packets!\n");
 
-  for (i = 0; i < unacked_packet_count; i++) {
-    if (TRACE > 0)
-      printf("---A: resending packet %d\n",
-             (a_window[(a_windowfirst + i) % WINDOWSIZE]).seqnum);
+  if (TRACE > 0)
+    printf("---A: resending packet %d\n",
+           (a_window[(a_windowfirst) % WINDOWSIZE]).seqnum);
 
-    tolayer3(A, a_window[(a_windowfirst + i) % WINDOWSIZE]);
-    packets_resent++;
-    if (i == 0) starttimer(A, RTT);
-  }
+  tolayer3(A, a_window[(a_windowfirst) % WINDOWSIZE]);
+  packets_resent++;
+  starttimer(A, RTT);
 }
 
 /* the following routine will be called once (only) before any other */
@@ -209,10 +209,11 @@ void B_input(struct pkt packet) {
   int sequencenum = packet.seqnum;
   /* if not corrupted, check if its within the window, if it
    * is, and its not a duplicate, buffer it*/
-  if (!IsCorrupted(packet) && !b_acked[packet.seqnum]) {
+  if (!IsCorrupted(packet)) {
     if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",
              packet.seqnum);
+    packets_received++;
     /* check if its in the window*/
     int upper_bound = (b_windowbase + WINDOWSIZE) % SEQSPACE;
     bool inwindow = false;
@@ -239,7 +240,7 @@ void B_input(struct pkt packet) {
     /* slide window to next non-received packet */
     while (b_acked[b_windowbase]) {
       /*  deliver to receiving application */
-      tolayer5(B, packet.payload);
+      tolayer5(B, b_window[b_windowbase].payload);
       b_acked[b_windowbase] = false; /* reset */
       b_windowbase = (b_windowbase + 1) % SEQSPACE;
     }
