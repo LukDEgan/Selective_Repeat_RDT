@@ -179,9 +179,7 @@ void A_timerinterrupt(void) {
   int seq = a_window[(a_windowfirst) % WINDOWSIZE].seqnum;
   if (TRACE > 0) printf("----A: time out,resend packets!\n");
 
-  if (TRACE > 0)
-    printf("---A: resending packet %d\n",
-           a_window[(a_windowfirst) % WINDOWSIZE].seqnum);
+  if (TRACE > 0) printf("---A: resending packet %d\n", seq);
 
   tolayer3(A, a_window[(a_windowfirst) % WINDOWSIZE]);
   packets_resent++;
@@ -219,10 +217,11 @@ void B_input(struct pkt packet) {
   int i;
   int upper_bound;
   bool inwindow;
-  int sequencenum = packet.seqnum;
+  int sequencenum;
   /* if not corrupted, check if its within the window, if it
    * is, and its not a duplicate, buffer it*/
   if (!IsCorrupted(packet)) {
+    sequencenum = packet.seqnum;
     if (TRACE > 0) {
       printf("----B: packet %d is correctly received, send ACK!\n",
              packet.seqnum);
@@ -249,6 +248,8 @@ void B_input(struct pkt packet) {
     sendpkt.acknum = sequencenum;
     sendpkt.seqnum = B_nextseqnum;
     B_nextseqnum = (B_nextseqnum + 1) % 2;
+    /* computer checksum */
+    sendpkt.checksum = ComputeChecksum(sendpkt);
     /* we don't have any data to send.  fill payload with 0's */
     for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
     /* slide window to next non-received packet */
@@ -258,24 +259,17 @@ void B_input(struct pkt packet) {
       b_acked[b_windowbase] = false; /* reset */
       b_windowbase = (b_windowbase + 1) % SEQSPACE;
     }
+
+    /* send out packet */
+    tolayer3(B, sendpkt);
     /* packet is corrupted or out of order resend last ACK */
-  } else {
+  } /*else {
     if (TRACE > 0) {
       printf(
           "----B: packet corrupted or not expected sequence number, resend "
           "ACK!\n");
     }
-  }
-
-  /* create packet */
-  sendpkt.seqnum = B_nextseqnum;
-  B_nextseqnum = (B_nextseqnum + 1) % 2;
-
-  /* computer checksum */
-  sendpkt.checksum = ComputeChecksum(sendpkt);
-
-  /* send out packet */
-  tolayer3(B, sendpkt);
+  }*/
 }
 
 /* the following routine will be called once (only) before any other */
