@@ -143,8 +143,7 @@ void A_input(struct pkt packet) {
         ackseq = packet.acknum;
         if (!a_acked[ackseq]) {
           a_acked[ackseq] = true; /*packet has been acked, set to true*/
-          unacked_packet_count--;
-        }
+                }
         /* in selective repeat, the window slides up the first unacked packet*/
         window_slid = false;
         while (a_acked[a_window[a_windowfirst].seqnum]) {
@@ -153,6 +152,7 @@ void A_input(struct pkt packet) {
                         over*/
           a_windowfirst = (a_windowfirst + 1) % WINDOWSIZE;
           window_slid = true;
+          unacked_packet_count--;
         }
         /* start timer again if the oldest is acked (the window mustve slid) or
            if the oldest times out
