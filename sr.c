@@ -263,13 +263,14 @@ void B_input(struct pkt packet) {
     /* send out packet */
     tolayer3(B, sendpkt);
     /* packet is corrupted or out of order resend last ACK */
-  } /*else {
-    if (TRACE > 0) {
-      printf(
-          "----B: packet corrupted or not expected sequence number, resend "
-          "ACK!\n");
-    }
-  }*/
+  } else {
+    return;
+    /* if (TRACE > 0) {
+       printf(
+           "----B: packet corrupted or not expected sequence number, resend "
+           "ACK!\n");
+     }*/
+  }
 }
 
 /* the following routine will be called once (only) before any other */
