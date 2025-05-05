@@ -143,7 +143,7 @@ void A_input(struct pkt packet) {
         ackseq = packet.acknum;
         if (!a_acked[ackseq]) {
           a_acked[ackseq] = true; /*packet has been acked, set to true*/
-                }
+        }
         /* in selective repeat, the window slides up the first unacked packet*/
         window_slid = false;
         while (a_acked[a_window[a_windowfirst].seqnum]) {
@@ -242,19 +242,17 @@ void B_input(struct pkt packet) {
     /*if its in the window and its new then buffer*/
     if (inwindow && !b_acked[sequencenum]) {
       b_acked[sequencenum] = true;
-      b_window[sequencenum] = packet;
+      b_window[sequencenum % WINDOWSIZE] = packet;
     }
     /*send ack to sender even if its not in order*/
     sendpkt.acknum = sequencenum;
     sendpkt.seqnum = B_nextseqnum;
     B_nextseqnum = (B_nextseqnum + 1) % 2;
 
-    /* we don't have any data to send.  fill payload with 0's */
-    for (i = 0; i < 20; i++) sendpkt.payload[i] = '0';
     /* slide window to next non-received packet */
     while (b_acked[b_windowbase]) {
       /*  deliver to receiving application */
-      tolayer5(B, b_window[b_windowbase].payload);
+      tolayer5(B, b_window[b_windowbase % WINDOWSIZE].payload);
       b_acked[b_windowbase] = false; /* reset */
       b_windowbase = (b_windowbase + 1) % SEQSPACE;
     }
